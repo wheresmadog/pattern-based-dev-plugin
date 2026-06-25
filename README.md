@@ -1,4 +1,4 @@
-# my-git-plugin
+# claude-dev-skills
 
 A Claude Code plugin bundling three GitHub workflow skills:
 
@@ -30,7 +30,7 @@ Open `/plugin` to confirm `my-git-plugin` is enabled.
 Once published to GitHub, anyone can install it directly:
 
 ```bash
-/plugin marketplace add https://github.com/<owner>/my-git-plugin
+/plugin marketplace add https://github.com/wheresmadog/claude-dev-skills
 /plugin install my-git-plugin@my-git-plugin
 ```
 

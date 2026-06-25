@@ -1,4 +1,4 @@
-# my-git-plugin
+# claude-dev-skills
 
 A Claude Code plugin that ships three GitHub workflow skills. Skills are plain markdown files — no compilation, no runtime dependencies.
 
@@ -50,6 +50,10 @@ skills/cc-module-md/SKILL.md
    ```
 3. Write the skill body in markdown below the front-matter.
 4. No changes to `plugin.json` or `marketplace.json` needed.
+
+## Repository
+
+Public: https://github.com/wheresmadog/claude-dev-skills
 
 ## Constraints
 

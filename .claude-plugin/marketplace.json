@@ -1,0 +1,13 @@
+{
+  "name": "my-git-plugin",
+  "owner": { "name": "ygkim" },
+  "plugins": [
+    {
+      "name": "my-git-plugin",
+      "source": "./",
+      "description": "GitHub workflow skills (gh-conv-to-issue, gh-issue-to-plan, cc-module-md).",
+      "version": "1.0.0",
+      "category": "workflow"
+    }
+  ]
+}

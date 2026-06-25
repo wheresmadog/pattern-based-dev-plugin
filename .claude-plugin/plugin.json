@@ -1,0 +1,7 @@
+{
+  "name": "my-git-plugin",
+  "description": "GitHub workflow skills: gh-conv-to-issue, gh-issue-to-plan, cc-module-md.",
+  "version": "1.0.0",
+  "author": { "name": "ygkim" },
+  "keywords": ["github", "issues", "workflow", "gh"]
+}

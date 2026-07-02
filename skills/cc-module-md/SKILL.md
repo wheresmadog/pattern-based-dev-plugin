@@ -13,71 +13,7 @@ Do NOT produce a file-by-file inventory unless a file is exceptionally important
 
 ## Structure
 
-Write the document using the following sections:
-
-### Module Purpose
-
-* Why this module exists
-* Problems it solves
-* Responsibilities it owns
-* Responsibilities intentionally owned by other modules
-
-### Feature Overview
-
-For each major feature provided by this module:
-
-* Purpose
-* Main workflows
-* Key entry points
-* Important business rules
-* Dependencies on other modules
-
-### Module Boundaries
-
-* What belongs inside this module
-* What should not be implemented here
-* Upstream dependencies
-* Downstream consumers
-* Public interfaces exposed to other modules
-
-### Internal Architecture
-
-* Major components and their responsibilities
-* Data flow within the module
-* Lifecycle of a typical request/job/event
-* Important abstractions and patterns
-
-### Integration Points
-
-* APIs consumed
-* Events published/subscribed
-* Database/storage interactions
-* External services used
-* Cross-module communication
-
-### Domain Model
-
-* Core concepts and entities
-* Relationships between concepts
-* Important terminology specific to this module
-
-### Change Guide
-
-When modifying this module:
-
-* Safe areas to extend
-* Common implementation patterns
-* Areas with hidden complexity
-* Frequently broken assumptions
-* Important invariants that must be preserved
-
-### Directory Guide
-
-Explain the purpose of major directories and packages in terms of functionality, not individual files.
-
-### Mental Model
-
-Provide a concise explanation of how an engineer should think about this module and its role within the larger system.
+Fill in the template at `templates/claude-md.md` to produce the document. Follow the guidance embedded in each section.
 
 ## Guidelines
 

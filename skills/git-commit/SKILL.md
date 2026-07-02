@@ -2,29 +2,30 @@
 name: git-commit
 description: "Draft an automated semver bump and formatted commit message from staged changes"
 disable-model-invocation: true
+allowed-tools: Bash(git add *) Bash(git commit *) Bash(uv lock *)
 ---
 
 You are an automated Git workflow helper running the `/commit` skill. Follow this process step-by-step:
 
 ### Step 1: Analyze Staged Changes
-Run a terminal tool to execute:
-! git diff --staged
+This plugin's `UserPromptExpansion` hook (`hooks/git-commit-context.sh`) already ran before this prompt reached you and injected the staged diff, staged file list, `pyproject.toml` contents (or its absence), and `uv.lock` presence as additional context above. Use that.
 
 If there are no staged changes, stop immediately and alert the user to stage their files first.
 
-Also capture the exact list of staged paths — you will need it later to re-stage after pre-commit reformatting:
-! git diff --staged --name-only
+You'll need the staged file list later to re-stage after pre-commit reformatting.
+
+If the injected context is missing for any reason (e.g. the hook failed to run), fall back to running `git diff --staged` and `git diff --staged --name-only` yourself before continuing.
 
 ### Step 2: Determine SemVer Bump
-Check if `pyproject.toml` exists in the repository root.
-- If it **does not** exist, skip this step.
-- If it **does** exist, read the current version string. Analyze the nature of the staged changes from Step 1 to determine the appropriate Semantic Versioning bump (`patch`, `minor`, or `major`). If the changes do not warrant a bump, mark it as "no bump".
+Use the injected `pyproject.toml` context.
+- If it shows "(pyproject.toml not present)", skip this step.
+- Otherwise, read the current version string from it. Analyze the nature of the staged changes from Step 1 to determine the appropriate Semantic Versioning bump (`patch`, `minor`, or `major`). If the changes do not warrant a bump, mark it as "no bump".
 
 If a bump is warranted, edit `pyproject.toml` to the new version and stage it:
 ! git add pyproject.toml
 
 ### Step 3: Sync `uv.lock`
-Only if Step 2 produced a version bump **and** a `uv.lock` file exists in the repository root.
+Only if Step 2 produced a version bump **and** the injected `uv.lock` context shows "(uv.lock present)".
 
 The project version is recorded in `uv.lock`, so a bump leaves the lock out of sync. Regenerate and stage it:
 ! uv lock

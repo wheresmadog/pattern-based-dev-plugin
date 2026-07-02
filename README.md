@@ -1,14 +1,15 @@
 # claude-dev-skills
 
-A Claude Code plugin bundling three GitHub workflow skills:
+A Claude Code plugin bundling four workflow skills:
 
 | Skill | Invocation | Purpose |
 |-------|-----------|---------|
 | **gh-conv-to-issue** | `/gh-conv-to-issue` | Turn an implementation discussion into a fully specified GitHub issue, obtain approval, create the issue, and create a dedicated worktree. |
 | **gh-issue-to-plan** | `/gh-issue-to-plan <issue>` | Fetch a GitHub issue via the `gh` CLI, explore the local codebase, design a plan, and execute the changes. Accepts an issue number (`42`) or full URL. |
 | **cc-module-md** | `/cc-module-md` | Generate a structured `CLAUDE.md` for the current module — responsibilities, architecture, integration points, and a developer mental model. |
+| **git-commit** | `/git-commit` | Analyze staged changes, bump semver in `pyproject.toml`/`uv.lock` when present, draft a Conventional-Commit message, and commit — retrying once after pre-commit hook reformatting. |
 
-**Prerequisite:** All skills that interact with GitHub shell out to the GitHub CLI (`gh`). Verify it is installed and authenticated before use:
+**Prerequisite:** `gh-conv-to-issue` and `gh-issue-to-plan` shell out to the GitHub CLI (`gh`). Verify it is installed and authenticated before use:
 
 ```bash
 gh auth status
@@ -44,7 +45,8 @@ claude-dev-skills/
 ├── skills/
 │   ├── gh-conv-to-issue/SKILL.md  # spec → approve → create issue → worktree
 │   ├── gh-issue-to-plan/SKILL.md  # fetch issue → explore → plan → implement
-│   └── cc-module-md/SKILL.md      # generate CLAUDE.md for current module
+│   ├── cc-module-md/SKILL.md      # generate CLAUDE.md for current module
+│   └── git-commit/SKILL.md        # analyze diff → semver bump → commit
 └── CLAUDE.md                # developer guide for this plugin
 ```
 

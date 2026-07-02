@@ -2,11 +2,11 @@
   "hooks": {
     "UserPromptExpansion": [
       {
-        "matcher": "git-commit",
+        "matcher": "commit-draft",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/git-commit-context.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/commit-draft-context.sh"
           }
         ]
       }

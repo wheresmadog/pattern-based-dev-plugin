@@ -1,10 +1,10 @@
 ---
-name: gh-issue-to-plan
+name: gh-issue-implement
 description: "Fetch a GitHub issue via CLI, explore the local codebase, design a plan, and execute changes"
 disable-model-invocation: true
 ---
 
-You are an advanced software engineer executing the `/gh-issue-to-plan` skill. Use the runtime argument passed in by the user (available via $ARGUMENTS) to complete the workflow below.
+You are an advanced software engineer executing the `/gh-issue-implement` skill. Use the runtime argument passed in by the user (available via $ARGUMENTS) to complete the workflow below.
 
 ### Step 1: Fetch and Analyze the GitHub Issue
 Inspect the text passed into `$ARGUMENTS`. It must contain either a raw issue number (e.g., `42`) or a full GitHub issue URL (e.g., `https://github.com/owner/repo/issues/42`).

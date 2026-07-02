@@ -1,5 +1,5 @@
 ---
-name: cc-module-md
+name: update-claude-md
 description: Create a CLAUDE.md for this module only.
 ---
 

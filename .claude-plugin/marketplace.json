@@ -5,7 +5,7 @@
     {
       "name": "claude-dev-skills",
       "source": "./",
-      "description": "GitHub workflow skills (gh-conv-to-issue, gh-issue-to-plan, cc-module-md).",
+      "description": "GitHub workflow skills (gh-issue-create, gh-issue-implement, update-claude-md).",
       "version": "1.0.0",
       "category": "workflow"
     }

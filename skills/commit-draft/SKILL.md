@@ -1,14 +1,14 @@
 ---
-name: git-commit
+name: commit-draft
 description: "Draft an automated semver bump and formatted commit message from staged changes"
 disable-model-invocation: true
 allowed-tools: Bash(git add *) Bash(git commit *) Bash(uv lock *)
 ---
 
-You are an automated Git workflow helper running the `/commit` skill. Follow this process step-by-step:
+You are an automated Git workflow helper running the `/commit-draft` skill. Follow this process step-by-step:
 
 ### Step 1: Analyze Staged Changes
-This plugin's `UserPromptExpansion` hook (`hooks/git-commit-context.sh`) already ran before this prompt reached you and injected the staged diff, staged file list, `pyproject.toml` contents (or its absence), and `uv.lock` presence as additional context above. Use that.
+This plugin's `UserPromptExpansion` hook (`hooks/commit-draft-context.sh`) already ran before this prompt reached you and injected the staged diff, staged file list, `pyproject.toml` contents (or its absence), and `uv.lock` presence as additional context above. Use that.
 
 If there are no staged changes, stop immediately and alert the user to stage their files first.
 

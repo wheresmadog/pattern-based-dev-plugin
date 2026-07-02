@@ -1,5 +1,5 @@
 ---
-name: gh-conv-to-issue
+name: gh-issue-create
 description: Turn an implementation discussion into a fully specified GitHub issue, obtain approval, create the issue, and create a dedicated worktree.
 ---
 

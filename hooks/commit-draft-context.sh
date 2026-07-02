@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# UserPromptExpansion hook for the git-commit skill.
+# UserPromptExpansion hook for the commit-draft skill.
 # Runs before the skill's prompt reaches the model and injects the staged
 # diff / pyproject.toml / uv.lock state as additionalContext, so the model
 # never has to spend a tool call gathering it.
 set -uo pipefail
 
 if ! command -v jq >/dev/null 2>&1; then
-  echo "git-commit-context hook: jq not found, skipping context injection" >&2
+  echo "commit-draft-context hook: jq not found, skipping context injection" >&2
   exit 1
 fi
 

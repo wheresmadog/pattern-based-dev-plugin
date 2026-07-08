@@ -1,0 +1,95 @@
+name: Open Draft PR
+
+# When a new branch is first pushed, open a draft PR against main with an
+# LLM-summarized body. Fires once per branch (github.event.created).
+#
+# Uses WORKFLOW_PAT (a fine-grained PAT) instead of GITHUB_TOKEN so that the
+# resulting PR open event propagates to other workflows — ci.yml (including
+# its link-issue job) will fire automatically on the draft PR.
+on:
+  push:
+    branches-ignore:
+      - main
+
+concurrency:
+  group: open-draft-pr-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  open-draft-pr:
+    # Only on the push that first creates the branch on the remote.
+    if: github.event.created == true
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
+      BRANCH: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history so we can diff origin/main...HEAD
+
+      - name: Skip if a PR already exists for this branch
+        id: guard
+        run: |
+          count=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          if [ "$count" != "0" ]; then
+            echo "PR already open for $BRANCH; nothing to do."
+          fi
+
+      - name: Install uv
+        if: steps.guard.outputs.count == '0'
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Generate PR title + body with LLM (with fallback)
+        if: steps.guard.outputs.count == '0'
+        id: summary
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          git fetch --quiet origin main
+
+          set +e
+          out=$(uv run --with litellm --no-project --python 3.12 \
+                python .github/scripts/summarize_branch.py 2>/tmp/summarize.err)
+          status=$?
+          set -e
+
+          if [ $status -ne 0 ] || [ -z "$out" ]; then
+            echo "Summarizer failed (exit $status); using fallback body." >&2
+            cat /tmp/summarize.err >&2 || true
+            title="Draft: ${BRANCH}"
+            {
+              echo "Auto-generated draft PR (LLM summary unavailable)."
+              echo
+              echo "## Commits"
+              git log --pretty=format:'- %s' origin/main..HEAD | head -50
+              echo
+            } > /tmp/pr_body.md
+          else
+            title=$(printf '%s\n' "$out" | head -1)
+            printf '%s\n' "$out" | tail -n +2 > /tmp/pr_body.md
+          fi
+
+          {
+            echo
+            echo "---"
+            echo "_Opened automatically by the Open Draft PR workflow._"
+          } >> /tmp/pr_body.md
+
+          echo "title=$title" >> "$GITHUB_OUTPUT"
+
+      - name: Create draft PR
+        if: steps.guard.outputs.count == '0'
+        run: |
+          gh pr create \
+            --draft \
+            --base main \
+            --head "$BRANCH" \
+            --title "${{ steps.summary.outputs.title }}" \
+            --body-file /tmp/pr_body.md

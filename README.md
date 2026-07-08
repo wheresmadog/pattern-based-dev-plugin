@@ -1,6 +1,6 @@
 # claude-dev-skills
 
-A Claude Code plugin bundling four workflow skills:
+## Features
 
 | Skill | Invocation | Purpose |
 |-------|-----------|---------|
@@ -9,24 +9,17 @@ A Claude Code plugin bundling four workflow skills:
 | **update-claude-md** | `/update-claude-md` | Generate a structured `CLAUDE.md` for the current module — responsibilities, architecture, integration points, and a developer mental model. |
 | **commit-draft** | `/commit-draft` | Analyze staged changes, bump semver in `pyproject.toml`/`uv.lock` when present, draft a Conventional-Commit message, and commit — retrying once after pre-commit hook reformatting. |
 
-**Prerequisite:** `gh-issue-create` and `gh-issue-implement` shell out to the GitHub CLI (`gh`). Verify it is installed and authenticated before use:
+## Prerequisite
+
+`gh-issue-create` and `gh-issue-implement` shell out to the GitHub CLI (`gh`). Verify it is installed and authenticated before use:
 
 ```bash
 gh auth status
 ```
 
-## Install (local)
+## Install
 
-Register this plugin's marketplace and install:
-
-```bash
-/plugin marketplace add ./
-/plugin install claude-dev-skills@claude-dev-skills
-```
-
-Open `/plugin` to confirm `claude-dev-skills` is enabled.
-
-## Install (public GitHub repo)
+### Claude Code
 
 Once published to GitHub, anyone can install it directly:
 
@@ -35,29 +28,28 @@ Once published to GitHub, anyone can install it directly:
 /plugin install claude-dev-skills@claude-dev-skills
 ```
 
-## Structure
+### Cursor
 
-```
-claude-dev-skills/
-├── .claude-plugin/
-│   ├── plugin.json          # plugin manifest (name, version, author)
-│   └── marketplace.json     # local marketplace catalog
-├── skills/
-│   ├── gh-issue-create/SKILL.md  # spec → approve → create issue → worktree
-│   ├── gh-issue-implement/SKILL.md  # fetch issue → explore → plan → implement
-│   ├── update-claude-md/SKILL.md  # generate CLAUDE.md for current module
-│   └── commit-draft/SKILL.md        # analyze diff → semver bump → commit
-└── CLAUDE.md                # developer guide for this plugin
+Clone (or symlink, for local development) the repo directly into Cursor's local plugins directory — this repo's layout already has `.cursor-plugin/plugin.json` at its root, matching what Cursor expects:
+
+```bash
+git clone https://github.com/wheresmadog/claude-dev-skills ~/.cursor/plugins/local/claude-dev-skills
 ```
 
-## Adding a skill
+```bash
+ln -s /path/to/claude-dev-skills ~/.cursor/plugins/local/claude-dev-skills
+```
 
-1. Create `skills/<skill-name>/SKILL.md` with a YAML front-matter block:
-   ```yaml
-   ---
-   name: my-skill
-   description: One-line description shown in /skills list.
-   ---
-   ```
-2. Write the skill body — plain markdown instructions Claude executes when the skill is invoked.
-3. No changes to `plugin.json` or `marketplace.json` are required; skills are auto-discovered from the `skills/` directory.
+Then restart Cursor, or run **Developer: Reload Window**.
+
+## Platform notes
+
+### Claude Code
+
+Fully supported, including the automatic plan-mode gate and pre-fetched context that `gh-issue-implement`, `update-claude-md`, and `commit-draft` rely on.
+
+### Cursor
+
+Runs all four skills too, but without those hooks — skills just gather their own context and skip the automatic plan-mode step, the same graceful fallback that happens when `jq` is missing.
+
+See `CLAUDE.md` for the plugin's internal structure and how to add or modify a skill.

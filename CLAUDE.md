@@ -50,6 +50,7 @@ Key invariants:
 ```
 .claude-plugin/plugin.json       # name, version, author, keywords
 .claude-plugin/marketplace.json  # local marketplace catalog (source: "./")
+.cursor-plugin/plugin.json       # Cursor plugin manifest (name, version, author)
 skills/gh-issue-create/SKILL.md  # one file per skill, auto-discovered
 skills/gh-issue-implement/SKILL.md
 skills/update-claude-md/SKILL.md
@@ -59,6 +60,10 @@ hooks/commit-draft-context.sh      # UserPromptExpansion hook for commit-draft (
 hooks/plan-mode-prompt.sh          # UserPromptExpansion hook forcing plan mode for gh-issue-implement/update-claude-md
 hooks/plan-mode-guard.sh           # PreToolUse hook denying autonomous Skill-tool calls to those skills outside plan mode
 ```
+
+`hooks/` is intentionally not mirrored under `.cursor-plugin/` — Cursor has no confirmed per-prompt hook equivalent to `UserPromptExpansion`/`PreToolUse` (its confirmed hook surface is a `workspaceOpen` hook, firing once per workspace rather than per-prompt). Under Cursor, `commit-draft`, `gh-issue-implement`, and `update-claude-md` simply run without their hook firing — the same fallback path each skill already exercises when `jq` is missing (see Constraints below).
+
+Manifest format references: [Claude Code plugins](https://code.claude.com/docs/en/plugins) for `.claude-plugin/plugin.json`, [Cursor plugins](https://cursor.com/docs/plugins) (field reference: [cursor.com/docs/reference/plugins](https://cursor.com/docs/reference/plugins)) for `.cursor-plugin/plugin.json`.
 
 ## Adding a skill
 

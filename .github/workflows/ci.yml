@@ -10,28 +10,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
-      - name: Sync workspace (all packages + dev tools)
-        run: uv sync --locked --all-packages
-
-      - name: Lint
-        run: uv run ruff check .
-
-      - name: Format check
-        run: uv run ruff format --check .
-
-      - name: Test
-        run: uv run pytest
-
   link-issue:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

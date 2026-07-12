@@ -1,4 +1,4 @@
-# claude-dev-skills
+# pattern-based-dev-plugin
 
 A Claude Code plugin that ships four workflow skills. Skills are plain markdown files — no compilation. `commit-draft` has a companion hook script, and `gh-issue-implement`/`update-claude-md` have a pair of hook scripts that force plan mode — all three require `jq`.
 
@@ -80,7 +80,7 @@ Manifest format references: [Claude Code plugins](https://code.claude.com/docs/e
 
 ## Repository
 
-Public: https://github.com/wheresmadog/claude-dev-skills
+Public: https://github.com/wheresmadog/pattern-based-dev-plugin
 
 ## Constraints
 

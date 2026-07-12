@@ -1,4 +1,4 @@
-# claude-dev-skills
+# pattern-based-dev-plugin
 
 ## Features
 
@@ -24,8 +24,8 @@ gh auth status
 Once published to GitHub, anyone can install it directly:
 
 ```bash
-/plugin marketplace add https://github.com/wheresmadog/claude-dev-skills
-/plugin install claude-dev-skills@claude-dev-skills
+/plugin marketplace add https://github.com/wheresmadog/pattern-based-dev-plugin
+/plugin install pattern-based-dev-plugin@pattern-based-dev-plugin
 ```
 
 ### Cursor
@@ -33,11 +33,11 @@ Once published to GitHub, anyone can install it directly:
 Clone (or symlink, for local development) the repo directly into Cursor's local plugins directory — this repo's layout already has `.cursor-plugin/plugin.json` at its root, matching what Cursor expects:
 
 ```bash
-git clone https://github.com/wheresmadog/claude-dev-skills ~/.cursor/plugins/local/claude-dev-skills
+git clone https://github.com/wheresmadog/pattern-based-dev-plugin ~/.cursor/plugins/local/pattern-based-dev-plugin
 ```
 
 ```bash
-ln -s /path/to/claude-dev-skills ~/.cursor/plugins/local/claude-dev-skills
+ln -s /path/to/pattern-based-dev-plugin ~/.cursor/plugins/local/pattern-based-dev-plugin
 ```
 
 Then restart Cursor, or run **Developer: Reload Window**.

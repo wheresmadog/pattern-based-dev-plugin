@@ -1,5 +1,5 @@
 {
-  "name": "claude-dev-skills",
+  "name": "pattern-based-dev-plugin",
   "description": "GitHub workflow skills: gh-issue-create, gh-issue-implement, update-claude-md.",
   "version": "1.1.0",
   "author": { "name": "ygkim" },

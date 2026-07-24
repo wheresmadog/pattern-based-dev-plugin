@@ -1,32 +1,11 @@
 {
   "hooks": {
-    "UserPromptExpansion": [
+    "SessionStart": [
       {
-        "matcher": "commit-draft",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/commit-draft-context.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "gh-issue-implement|update-claude-md",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/plan-mode-prompt.sh"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/plan-mode-guard.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/doc-scoping-context.sh"
           }
         ]
       }

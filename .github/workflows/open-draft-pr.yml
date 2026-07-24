@@ -3,9 +3,9 @@ name: Open Draft PR
 # When a new branch is first pushed, open a draft PR against main with an
 # LLM-summarized body. Fires once per branch (github.event.created).
 #
-# Uses WORKFLOW_PAT (a fine-grained PAT) instead of GITHUB_TOKEN so that the
-# resulting PR open event propagates to other workflows — ci.yml (including
-# its link-issue job) will fire automatically on the draft PR.
+# Uses GITHUB_TOKEN. Events from GITHUB_TOKEN do not trigger other workflows
+# (GitHub recursion guard). Issue linking and assignee setup run in this
+# workflow after create — there is no separate CI job for those.
 on:
   push:
     branches-ignore:
@@ -17,6 +17,8 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: write
+  issues: read
 
 jobs:
   open-draft-pr:
@@ -24,7 +26,7 @@ jobs:
     if: github.event.created == true
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       BRANCH: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +39,7 @@ jobs:
           count=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')
           echo "count=$count" >> "$GITHUB_OUTPUT"
           if [ "$count" != "0" ]; then
-            echo "PR already open for $BRANCH; nothing to do."
+            echo "::warning::PR already open for $BRANCH; skipping create."
           fi
 
       - name: Install uv
@@ -86,10 +88,125 @@ jobs:
 
       - name: Create draft PR
         if: steps.guard.outputs.count == '0'
+        id: create
         run: |
-          gh pr create \
+          set +e
+          out=$(gh pr create \
             --draft \
             --base main \
             --head "$BRANCH" \
             --title "${{ steps.summary.outputs.title }}" \
-            --body-file /tmp/pr_body.md
+            --body-file /tmp/pr_body.md 2>/tmp/pr_create.err)
+          status=$?
+          set -e
+
+          if [ $status -ne 0 ]; then
+            err=$(cat /tmp/pr_create.err 2>/dev/null || true)
+            echo "$err" >&2
+            if echo "$err" | grep -qiE 'already exists|pull request already'; then
+              echo "::warning::PR already open for $BRANCH; skipping create."
+              exit 0
+            fi
+            exit $status
+          fi
+
+          # gh pr create prints the PR URL on success.
+          pr_number=$(echo "$out" | grep -oE '/pull/[0-9]+' | head -1 | grep -oE '[0-9]+')
+          if [ -z "$pr_number" ]; then
+            pr_number=$(gh pr view --head "$BRANCH" --json number --jq '.number')
+          fi
+          echo "number=$pr_number" >> "$GITHUB_OUTPUT"
+          echo "Created PR #$pr_number: $out"
+
+      - name: Assign commit contributors
+        if: steps.guard.outputs.count == '0' && steps.create.outputs.number != ''
+        env:
+          PR_NUMBER: ${{ steps.create.outputs.number }}
+        run: |
+          logins=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}/commits" \
+            --jq '.[].author.login // empty' | sort -u | grep -v '^$' || true)
+
+          if [ -z "$logins" ]; then
+            echo "No GitHub-linked commit authors to assign."
+            exit 0
+          fi
+
+          while IFS= read -r login; do
+            [ -z "$login" ] && continue
+            set +e
+            err=$(gh pr edit "$PR_NUMBER" --add-assignee "$login" 2>&1)
+            status=$?
+            set -e
+            if [ $status -ne 0 ]; then
+              echo "::warning::Could not assign @$login to PR #$PR_NUMBER: $err"
+            else
+              echo "Assigned @$login to PR #$PR_NUMBER"
+            fi
+          done <<< "$logins"
+
+      - name: Link related issue
+        if: steps.guard.outputs.count == '0' && steps.create.outputs.number != ''
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.create.outputs.number }}
+          BRANCH: ${{ github.ref_name }}
+          PR_TITLE: ${{ steps.summary.outputs.title }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = parseInt(process.env.PR_NUMBER, 10);
+            const branch = process.env.BRANCH;
+            const title = process.env.PR_TITLE || '';
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber,
+            });
+            const body = pr.body || '';
+
+            const candidates = new Set();
+
+            const branchPatterns = [
+              /^(?:fix|feat|feature|chore|docs|refactor)[\/\-](\d+)/i,
+              /(?:^|[-\/])(\d+)(?:[-\/]|$)/,
+            ];
+            for (const pattern of branchPatterns) {
+              const m = branch.match(pattern);
+              if (m) candidates.add(parseInt(m[1], 10));
+            }
+
+            const titleMatches = title.matchAll(/#(\d+)/g);
+            for (const m of titleMatches) {
+              candidates.add(parseInt(m[1], 10));
+            }
+
+            const verified = [];
+            for (const n of candidates) {
+              try {
+                await github.rest.issues.get({ owner, repo, issue_number: n });
+                verified.push(n);
+              } catch (_) {
+                // not a valid issue in this repo
+              }
+            }
+
+            const toAppend = verified.filter(n => {
+              return !new RegExp(`(?:closes?|fixes?|resolves?)\\s+#${n}`, 'i').test(body);
+            });
+
+            if (toAppend.length === 0 && verified.length === 0) {
+              core.warning('No linked issue found. Please add "Closes #N" to the PR body manually.');
+              return;
+            }
+
+            if (toAppend.length > 0) {
+              const additions = toAppend.map(n => `Closes #${n}`).join('\n');
+              const updatedBody = body ? `${body}\n${additions}` : additions;
+              await github.rest.pulls.update({
+                owner,
+                repo,
+                pull_number: prNumber,
+                body: updatedBody,
+              });
+            }

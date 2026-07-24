@@ -4,14 +4,11 @@
 
 | Skill | Invocation | Purpose |
 |-------|-----------|---------|
-| **gh-issue-create** | `/gh-issue-create` | Turn an implementation discussion into a fully specified GitHub issue, obtain approval, create the issue, and create a dedicated worktree. |
-| **gh-issue-implement** | `/gh-issue-implement <issue>` | Fetch a GitHub issue via the `gh` CLI, explore the local codebase, design a plan, and execute the changes. Accepts an issue number (`42`) or full URL. |
-| **update-claude-md** | `/update-claude-md` | Generate a structured `CLAUDE.md` for the current module — responsibilities, architecture, integration points, and a developer mental model. |
-| **commit-draft** | `/commit-draft` | Analyze staged changes, bump semver in `pyproject.toml`/`uv.lock` when present, draft a Conventional-Commit message, and commit — retrying once after pre-commit hook reformatting. |
+| **gh-issue-create** | `/gh-issue-create [issue]` | End to end: turn an implementation discussion into a GitHub issue (with approval), create a worktree, `cd` into it, enter plan mode, then plan and implement. Pass an existing issue number (`42`) or URL to skip creation and jump straight to implementation. |
 
 ## Prerequisite
 
-`gh-issue-create` and `gh-issue-implement` shell out to the GitHub CLI (`gh`). Verify it is installed and authenticated before use:
+`gh-issue-create` shells out to the GitHub CLI (`gh`). Verify it is installed and authenticated before use:
 
 ```bash
 gh auth status
@@ -46,10 +43,10 @@ Then restart Cursor, or run **Developer: Reload Window**.
 
 ### Claude Code
 
-Fully supported, including the automatic plan-mode gate and pre-fetched context that `gh-issue-implement`, `update-claude-md`, and `commit-draft` rely on.
+Fully supported, including a session-start hook that reminds Claude to keep `README.md`/`CLAUDE.md` documentation scoped and up to date.
 
 ### Cursor
 
-Runs all four skills too, but without those hooks — skills just gather their own context and skip the automatic plan-mode step, the same graceful fallback that happens when `jq` is missing.
+Runs the skill too, but the session-start documentation reminder never fires — the same graceful fallback that happens when `jq` is missing.
 
 See `CLAUDE.md` for the plugin's internal structure and how to add or modify a skill.

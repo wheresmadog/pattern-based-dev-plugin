@@ -1,49 +1,24 @@
 # pattern-based-dev-plugin
 
-A Claude Code plugin that ships four workflow skills. Skills are plain markdown files — no compilation. `commit-draft` has a companion hook script, and `gh-issue-implement`/`update-claude-md` have a pair of hook scripts that force plan mode — all three require `jq`.
+A Claude Code plugin that ships one workflow skill. Skills are plain markdown files — no compilation. A separate session-start hook, unscoped to the skill, fires once per session and requires `jq`.
 
 ## Skills
 
-### gh-issue-create (`/gh-issue-create`)
-Turns a free-form implementation discussion into a formal GitHub issue.
+### gh-issue-create (`/gh-issue-create [issue]`)
+The single end-to-end orchestrator: turns a free-form implementation discussion into a formal GitHub issue and then drives the implementation from an isolated worktree in plan mode.
 
-**Workflow:** interview user → draft spec (goal, requirements, approach, edge cases, verification steps) → approval loop → `gh issue create` → `git worktree add`.
+**Workflow (Phase A — create, normal mode):** interview user → draft spec from `templates/issue.md` → approval loop → `gh issue create`.
+**Workflow (Phase B — implement):** `git worktree add ../issue-<N>` → `EnterWorktree` into it → suggest `/rename issue-<N>` → `EnterPlanMode` → `gh issue view` → extract acceptance criteria → targeted exploration → plan (`ExitPlanMode`) → execute + verify each step.
+
+Accepts an optional `$ARGUMENTS`: a bare issue number (`42`) or full URL skips Phase A and jumps straight to Phase B for that existing issue (this replaces the former standalone `gh-issue-implement`).
 
 Key invariants:
+- `disable-model-invocation: true` — runs only on the explicit `/gh-issue-create` trigger, never auto-invoked mid-conversation, so the create+worktree+plan sequence is deterministic.
 - Never creates an issue without explicit user approval.
 - Never creates a worktree if issue creation fails.
+- Plan mode is entered in Phase B via `EnterPlanMode` from within the skill body — NOT forced upfront by a hook, because a plan-mode gate would block the Phase A `gh issue create` / `git worktree add`.
+- Session rename (step b of the intended flow) has no programmatic path — the skill suggests the user run `/rename issue-<N>` themselves. Hooks can only set a title at `SessionStart`, which `EnterWorktree` does not trigger, and no rename tool is exposed.
 - When editing an existing issue, writes the complete final state — no changelog prose.
-
-### gh-issue-implement (`/gh-issue-implement <issue>`)
-Fetches a GitHub issue and implements it.
-
-**Workflow:** `gh issue view` → extract acceptance criteria → targeted codebase exploration → step-by-step plan → execute + verify each step.
-
-Accepts a bare number (`42`) or a full URL as `$ARGUMENTS`.
-
-Key invariants:
-- A plugin `UserPromptExpansion` hook (`hooks/hooks.json` → `hooks/plan-mode-prompt.sh`) instructs the model to call `EnterPlanMode` before this skill's own explore/plan/execute steps run, since the skill otherwise designs and executes in one pass.
-
-### update-claude-md (`/update-claude-md`)
-Generates a structured `CLAUDE.md` for the current module.
-
-Sections: Module Purpose, Feature Overview, Module Boundaries, Internal Architecture, Integration Points, Domain Model, Change Guide, Directory Guide, Mental Model.
-
-Focus: architectural understanding for onboarding engineers, not a file inventory.
-
-Key invariants:
-- Same `UserPromptExpansion` hook as `gh-issue-implement` forces plan mode when invoked via `/update-claude-md`. Unlike `gh-issue-implement`, this skill has no `disable-model-invocation` flag, so the model can also invoke it directly via the `Skill` tool mid-conversation — a `PreToolUse` hook (`hooks/plan-mode-guard.sh`) denies that call until plan mode is active, since `UserPromptExpansion` never fires for a `Skill` tool call.
-
-### commit-draft (`/commit-draft`)
-Analyzes staged changes and drafts a commit, handling versioning and pre-commit reformatting.
-
-**Workflow:** `git diff --staged` → bump semver in `pyproject.toml` if warranted (skipped if the file doesn't exist) → sync `uv.lock` if a bump happened and the lockfile exists → draft a Conventional-Commit-style message with a `Changes:` bullet list → commit.
-
-Key invariants:
-- Never uses `--no-verify` to bypass pre-commit hooks.
-- If a hook reformats files, re-stages the original paths and retries the commit exactly once — a second failure is reported to the user, not looped on.
-- Skips the semver/`uv.lock` steps entirely when `pyproject.toml`/`uv.lock` are absent from the repo root.
-- A plugin `UserPromptExpansion` hook (`hooks/hooks.json` → `hooks/commit-draft-context.sh`) runs the staged-diff/`pyproject.toml`/`uv.lock` lookups *before* the skill's prompt reaches the model, injecting the results as `additionalContext` — the skill never spends a tool call gathering that state itself.
 
 ## Plugin structure
 
@@ -52,16 +27,13 @@ Key invariants:
 .claude-plugin/marketplace.json  # local marketplace catalog (source: "./")
 .cursor-plugin/plugin.json       # Cursor plugin manifest (name, version, author)
 skills/gh-issue-create/SKILL.md  # one file per skill, auto-discovered
-skills/gh-issue-implement/SKILL.md
-skills/update-claude-md/SKILL.md
-skills/commit-draft/SKILL.md
 hooks/hooks.json                 # plugin-level hook registry, auto-discovered
-hooks/commit-draft-context.sh      # UserPromptExpansion hook for commit-draft (requires jq)
-hooks/plan-mode-prompt.sh          # UserPromptExpansion hook forcing plan mode for gh-issue-implement/update-claude-md
-hooks/plan-mode-guard.sh           # PreToolUse hook denying autonomous Skill-tool calls to those skills outside plan mode
+hooks/doc-scoping-context.sh       # SessionStart hook injecting documentation-scoping principles once per session (requires jq)
 ```
 
-`hooks/` is intentionally not mirrored under `.cursor-plugin/` — Cursor has no confirmed per-prompt hook equivalent to `UserPromptExpansion`/`PreToolUse` (its confirmed hook surface is a `workspaceOpen` hook, firing once per workspace rather than per-prompt). Under Cursor, `commit-draft`, `gh-issue-implement`, and `update-claude-md` simply run without their hook firing — the same fallback path each skill already exercises when `jq` is missing (see Constraints below).
+`doc-scoping-context.sh` is registered under `SessionStart` in `hooks/hooks.json` with no `matcher`, so it fires once per session (startup/resume/clear) regardless of which skill, if any, is invoked — unlike the other three hooks, which are `UserPromptExpansion`/`PreToolUse` and scoped to a specific skill's trigger.
+
+`hooks/` is intentionally not mirrored under `.cursor-plugin/` — Cursor has no confirmed per-prompt hook equivalent to `UserPromptExpansion`/`PreToolUse`/`SessionStart` (its confirmed hook surface is a `workspaceOpen` hook, firing once per workspace rather than per-prompt). Under Cursor, the doc-scoping context never gets injected — the same fallback path the hook already exercises when `jq` is missing (see Constraints below).
 
 Manifest format references: [Claude Code plugins](https://code.claude.com/docs/en/plugins) for `.claude-plugin/plugin.json`, [Cursor plugins](https://cursor.com/docs/plugins) (field reference: [cursor.com/docs/reference/plugins](https://cursor.com/docs/reference/plugins)) for `.cursor-plugin/plugin.json`.
 
@@ -84,8 +56,7 @@ Public: https://github.com/wheresmadog/pattern-based-dev-plugin
 
 ## Constraints
 
-- Skills that interact with GitHub (`gh-issue-create`, `gh-issue-implement`) require `gh` CLI authenticated (`gh auth status`). `commit-draft` is plain git and has no `gh` dependency.
-- `disable-model-invocation: true` in gh-issue-implement's and commit-draft's front-matter means they run as a direct instruction set, not a sub-model call — keep the instructions self-contained and deterministic.
+- `gh-issue-create` interacts with GitHub and requires `gh` CLI authenticated (`gh auth status`).
+- `disable-model-invocation: true` in gh-issue-create's front-matter means it runs as a direct instruction set, not a sub-model call — keep the instructions self-contained and deterministic.
 - `.claude/settings.local.json` contains a local `ANTHROPIC_BASE_URL` override — do not commit this file to a public repo.
-- `hooks/commit-draft-context.sh` requires `jq`; it degrades to a no-op (exit 1, stderr note) if `jq` is missing, and the `commit-draft` skill falls back to gathering context itself in that case.
-- `hooks/plan-mode-prompt.sh` and `hooks/plan-mode-guard.sh` also require `jq`; each degrades to a no-op if `jq` is missing, meaning `gh-issue-implement`/`update-claude-md` simply run without the plan-mode gate rather than failing.
+- `hooks/doc-scoping-context.sh` requires `jq`; it degrades to a no-op (exit 1, stderr note) if `jq` is missing, meaning the session simply starts without the doc-scoping context.
